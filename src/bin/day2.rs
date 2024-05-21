@@ -23,10 +23,7 @@ fn solve_part2(input: &str) -> i32 {
     input
         .lines()
         .filter_map(|line| game_parser.parse(line).ok())
-        .map(|(_, game)| {
-            let [r, g, b] = game.minimal_set();
-            r * g * b
-        })
+        .map(|(_, game)| game.minimal_set().into_iter().product::<i32>())
         .sum()
 }
 
