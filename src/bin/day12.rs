@@ -38,14 +38,17 @@ fn quintuple(line: Line) -> Line {
     Line { pattern, nums }
 }
 
-fn count(line: Line) -> usize {
-    let pattern = line.pattern.trim_end_matches('.').as_bytes();
-    count_memo(pattern.to_vec(), line.nums, &mut FxHashMap::default())
+fn count(mut line: Line) -> usize {
+    let mut pattern = trim_end(line.pattern.as_bytes().to_vec());
+    // reverse the vectors since we'd otherwise be popping from the front
+    pattern.reverse();
+    line.nums.reverse();
+    count_memo(pattern, line.nums, &mut FxHashMap::default())
 }
 
 fn count_memo(
-    pattern: Vec<u8>,
-    nums: Vec<usize>,
+    mut pattern: Vec<u8>,
+    mut nums: Vec<usize>,
     memo: &mut FxHashMap<(Vec<u8>, Vec<usize>), usize>,
 ) -> usize {
     if nums.is_empty() {
@@ -54,28 +57,28 @@ fn count_memo(
     if pattern.len() < min_len(&nums) {
         return 0;
     }
-    if pattern.starts_with(b".") {
-        return count_memo(trim_start(&pattern), nums, memo);
+    if let Some(b'.') = pattern.last() {
+        return count_memo(trim_end(pattern), nums, memo);
     }
-    if pattern.starts_with(b"#") {
-        if pattern[..nums[0]].contains(&b'.') || pattern[nums[0]..].starts_with(b"#") {
+    if let Some(b'#') = pattern.last() {
+        let n = nums.pop().expect("non-empty: checked above");
+        let i = pattern.len().wrapping_sub(n + 1); // index from the end
+        if pattern.get(i) == Some(&b'#') || pattern[i.wrapping_add(1)..].contains(&b'.') {
             return 0;
         }
-        return count_memo(
-            pattern.get(nums[0] + 1..).unwrap_or_default().to_vec(),
-            nums.get(1..).unwrap_or_default().to_vec(),
-            memo,
-        );
+        pattern.truncate(pattern.len().saturating_sub(n + 1));
+        return count_memo(pattern, nums, memo);
     }
-
     if let Some(n) = memo.get(&(pattern.clone(), nums.clone())) {
         return *n;
     }
+
     let value = {
-        let mut pattern = pattern.clone();
-        pattern[0] = b'#';
-        let l = count_memo(pattern[1..].to_vec(), nums.clone(), memo);
-        let r = count_memo(pattern, nums.clone(), memo);
+        let mut pat = pattern.clone();
+        pat.pop();
+        let l = count_memo(pat.clone(), nums.clone(), memo);
+        pat.push(b'#');
+        let r = count_memo(pat, nums.clone(), memo);
         l + r
     };
     memo.insert((pattern, nums), value);
@@ -88,11 +91,11 @@ fn min_len(nums: &[usize]) -> usize {
 }
 
 #[inline]
-fn trim_start(mut pattern: &[u8]) -> Vec<u8> {
-    while let [b'.', rest @ ..] = pattern {
-        pattern = rest;
+fn trim_end(mut pattern: Vec<u8>) -> Vec<u8> {
+    while let Some(b'.') = pattern.last() {
+        pattern.pop();
     }
-    pattern.to_vec()
+    pattern
 }
 
 #[cfg(test)]
