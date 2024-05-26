@@ -1,7 +1,9 @@
-use std::iter::repeat;
+use std::{hash::BuildHasherDefault, iter::repeat};
 
-use fxhash::FxHashMap;
+use fxhash::FxHasher;
 use itertools::Itertools;
+
+type FxHashMap<K, V> = hashbrown::HashMap<K, V, BuildHasherDefault<FxHasher>>;
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day12").unwrap();
@@ -46,6 +48,24 @@ fn count(mut line: Line) -> usize {
     count_memo(pattern, line.nums, &mut FxHashMap::default())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct View<'a> {
+    pattern: &'a [u8],
+    nums: &'a [usize],
+}
+
+impl<'a> View<'a> {
+    fn new(pattern: &'a [u8], nums: &'a [usize]) -> Self {
+        Self { pattern, nums }
+    }
+}
+
+impl hashbrown::Equivalent<(Vec<u8>, Vec<usize>)> for View<'_> {
+    fn equivalent(&self, key: &(Vec<u8>, Vec<usize>)) -> bool {
+        self.pattern == key.0 && self.nums == key.1
+    }
+}
+
 fn count_memo(
     mut pattern: Vec<u8>,
     mut nums: Vec<usize>,
@@ -69,7 +89,7 @@ fn count_memo(
         pattern.truncate(pattern.len().saturating_sub(n + 1));
         return count_memo(pattern, nums, memo);
     }
-    if let Some(n) = memo.get(&(pattern.clone(), nums.clone())) {
+    if let Some(n) = memo.get(&View::new(&pattern, &nums)) {
         return *n;
     }
 
