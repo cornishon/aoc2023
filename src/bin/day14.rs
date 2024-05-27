@@ -3,73 +3,105 @@ use simple_grid::Grid;
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day14").unwrap();
-    let mut grid = read_grid(&input);
-    grid.rotate_ccw();
-
-    println!("Part 1: {}", solve_part1(&grid));
-    println!("Part 2: {}", solve_part2(grid));
+    let grid = read_grid(&input);
+    println!("Part 1: {}", load_of(&roll_north(grid.clone())));
+    println!("Part 2: {}", load_after(1_000_000_000, grid));
 }
 
-fn solve_part1(grid: &Grid<u8>) -> usize {
-    load(&roll(grid))
-}
-
-fn solve_part2(grid: Grid<u8>) -> usize {
-    load_after(1000000000, grid)
-}
-
-fn cycle(g0: &Grid<u8>) -> Grid<u8> {
-    let mut g1 = roll(g0);
-    g1.rotate_cw();
-    let mut g2 = roll(&g1);
-    g2.rotate_cw();
-    let mut g3 = roll(&g2);
-    g3.rotate_cw();
-    let mut g4 = roll(&g3);
-    g4.rotate_cw();
-    g4
+fn cycle(grid: Grid<u8>) -> Grid<u8> {
+    roll_east(roll_south(roll_west(roll_north(grid))))
 }
 
 fn load_after(time: usize, grid: Grid<u8>) -> usize {
     let mut iters = vec![grid];
-    let (start, period) = loop {
-        let g = cycle(iters.last().unwrap());
+    let start = loop {
+        let g = cycle(iters.last().unwrap().clone());
         if let Some(i) = iters.iter().position(|x| *x == g) {
-            break (i, iters.len() - i);
+            break i;
         }
         iters.push(g);
     };
-    load(&iters[start + (time - start) % period])
+    let period = iters.len() - start;
+    load_of(&iters[start + (time - start) % period])
 }
 
-fn load(grid: &Grid<u8>) -> usize {
-    let w = grid.width();
+fn load_of(grid: &Grid<u8>) -> usize {
+    let h = grid.height();
     grid.cells_with_indices_iter()
-        .filter_map(|(idx, c)| (*c == b'O').then_some(idx.column()))
-        .fold(0, |acc, col| acc + w - col)
+        .filter_map(|(idx, c)| (*c == b'O').then_some(idx.row()))
+        .fold(0, |acc, row| acc + h - row)
 }
 
-fn roll(grid: &Grid<u8>) -> Grid<u8> {
-    let mut new = grid.clone();
-
-    for row in grid.rows() {
-        let mut s = 0;
-        for col in grid.columns() {
+fn roll_north(mut grid: Grid<u8>) -> Grid<u8> {
+    for col in grid.columns() {
+        let mut idx = 0;
+        for row in grid.rows() {
             match grid[(col, row)] {
                 b'O' => {
-                    new[(col, row)] = b'.';
-                    new[(s, row)] = b'O';
-                    s += 1;
+                    grid[(col, row)] = b'.';
+                    grid[(col, idx)] = b'O';
+                    idx += 1;
                 }
-                b'#' => {
-                    s = col + 1;
-                }
+                b'#' => idx = row + 1,
                 _ => {}
             }
         }
     }
+    grid
+}
 
-    new
+fn roll_south(mut grid: Grid<u8>) -> Grid<u8> {
+    for col in grid.columns() {
+        let mut idx = grid.height();
+        for row in grid.rows().rev() {
+            match grid[(col, row)] {
+                b'O' => {
+                    idx -= 1;
+                    grid[(col, row)] = b'.';
+                    grid[(col, idx)] = b'O';
+                }
+                b'#' => idx = row,
+                _ => {}
+            }
+        }
+    }
+    grid
+}
+
+fn roll_east(mut grid: Grid<u8>) -> Grid<u8> {
+    for row in grid.rows() {
+        let mut idx = grid.width();
+        for col in grid.columns().rev() {
+            match grid[(col, row)] {
+                b'O' => {
+                    idx -= 1;
+                    grid[(col, row)] = b'.';
+                    grid[(idx, row)] = b'O';
+                }
+                b'#' => idx = col,
+                _ => {}
+            }
+        }
+    }
+    grid
+}
+
+fn roll_west(mut grid: Grid<u8>) -> Grid<u8> {
+    for row in grid.rows() {
+        let mut idx = 0;
+        for col in grid.columns() {
+            match grid[(col, row)] {
+                b'O' => {
+                    grid[(col, row)] = b'.';
+                    grid[(idx, row)] = b'O';
+                    idx += 1;
+                }
+                b'#' => idx = col + 1,
+                _ => {}
+            }
+        }
+    }
+    grid
 }
 
 #[cfg(test)]
@@ -80,16 +112,14 @@ mod tests {
 
     #[test]
     fn can_solve_part1() {
-        let mut grid = read_grid(SAMPLE1);
-        grid.rotate_ccw();
-        assert_eq!(solve_part1(&grid), 136);
+        let grid = read_grid(SAMPLE1);
+        assert_eq!(load_of(&roll_north(grid)), 136);
     }
 
     #[test]
     fn can_solve_part2() {
-        let mut grid = read_grid(SAMPLE1);
-        grid.rotate_ccw();
-        assert_eq!(load_after(1000000000, grid), 64);
+        let grid = read_grid(SAMPLE1);
+        assert_eq!(load_after(1_000_000_000, grid), 64);
     }
 
     const SAMPLE1: &str = "
