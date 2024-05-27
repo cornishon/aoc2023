@@ -5,7 +5,7 @@ use simple_grid::Grid;
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day11").unwrap();
-    let grid = read_grid(&input, |b| *b);
+    let grid = read_grid(&input);
     println!("Part 1: {}", solve(&grid, 2));
     println!("Part 2: {}", solve(&grid, 1_000_000));
 }
@@ -54,13 +54,13 @@ mod tests {
 
     #[test]
     fn can_solve_part1() {
-        let grid = read_grid(SAMPLE1, |b| *b);
+        let grid = read_grid(SAMPLE1);
         assert_eq!(solve(&grid, 2), 374)
     }
 
     #[test]
     fn can_solve_part2() {
-        let grid = read_grid(SAMPLE1, |b| *b);
+        let grid = read_grid(SAMPLE1);
         assert_eq!(solve(&grid, 10), 1030);
         assert_eq!(solve(&grid, 100), 8410);
     }

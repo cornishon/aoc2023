@@ -5,7 +5,7 @@ use simple_grid::{Grid, GridIndex};
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day10").unwrap();
-    let grid = read_grid(&input, |&b| b);
+    let grid = read_grid(&input);
     println!("Part 1: {}", path(&grid).len() / 2);
     println!("Part 2: {}", enclosed_area(&grid));
 }
@@ -88,15 +88,15 @@ mod tests {
 
     #[test]
     fn can_solve_part1() {
-        assert_eq!(path(&read_grid(SAMPLE1, |&b| b)).len() / 2, 4);
-        assert_eq!(path(&read_grid(SAMPLE2, |&b| b)).len() / 2, 4);
-        assert_eq!(path(&read_grid(SAMPLE3, |&b| b)).len() / 2, 8);
+        assert_eq!(path(&read_grid(SAMPLE1)).len() / 2, 4);
+        assert_eq!(path(&read_grid(SAMPLE2)).len() / 2, 4);
+        assert_eq!(path(&read_grid(SAMPLE3)).len() / 2, 8);
     }
     #[test]
     fn can_solve_part2() {
-        assert_eq!(enclosed_area(&read_grid(SAMPLE4, |&b| b)), 4);
-        assert_eq!(enclosed_area(&read_grid(SAMPLE5, |&b| b)), 8);
-        assert_eq!(enclosed_area(&read_grid(SAMPLE6, |&b| b)), 10);
+        assert_eq!(enclosed_area(&read_grid(SAMPLE4)), 4);
+        assert_eq!(enclosed_area(&read_grid(SAMPLE5)), 8);
+        assert_eq!(enclosed_area(&read_grid(SAMPLE6)), 10);
     }
 
     const SAMPLE1: &str = "

@@ -1,4 +1,4 @@
-use aoc2023::read_grid;
+use aoc2023::read_grid_with;
 use simple_grid::{Grid, GridIndex};
 
 fn main() {
@@ -8,7 +8,7 @@ fn main() {
 }
 
 fn solve_part1(input: &str) -> u32 {
-    let grid = read_grid(input, |b| *b as char);
+    let grid = read_grid_with(input, |b| *b as char);
     let (w, h) = grid.dimensions();
     let mut visited = Grid::new(w, h, vec![false; w * h]);
     grid.cells_with_indices_iter()
@@ -27,7 +27,7 @@ fn solve_part1(input: &str) -> u32 {
 }
 
 fn solve_part2(input: &str) -> u32 {
-    let grid = read_grid(input, |b| *b as char);
+    let grid = read_grid_with(input, |b| *b as char);
     let (w, h) = grid.dimensions();
     let mut visited = Grid::new(w, h, vec![false; w * h]);
     grid.cells_with_indices_iter()
@@ -73,8 +73,6 @@ fn number_at(nbor: GridIndex, grid: &Grid<char>, visited: &mut Grid<bool>) -> u3
 
 #[cfg(test)]
 mod tests {
-    use aoc2023::read_grid;
-
     use super::*;
 
     const INPUT: &str = "
@@ -91,7 +89,7 @@ mod tests {
 
     #[test]
     fn can_parse_input() {
-        let grid = read_grid(INPUT, |b| *b as char);
+        let grid = read_grid_with(INPUT, |b| *b as char);
         println!("{}", grid.to_pretty_string());
     }
 
