@@ -87,20 +87,12 @@ fn find_path(m: &Grid<u8>, min_steps: usize, max_steps: usize) -> usize {
 
     let step = |state: State, d| {
         let heading = state.heading.turn(d);
-        if state.steps == 0 {
-            State {
-                pos: advance(state.pos, min_steps, heading),
-                heading,
-                steps: min_steps,
-            }
-        } else {
-            let steps = if d == TurnDir::Straight { state.steps + 1 } else { min_steps };
-            let delta = if d == TurnDir::Straight { 1 } else { min_steps };
-            State {
-                pos: advance(state.pos, delta, heading),
-                heading,
-                steps,
-            }
+        let steps = if d == TurnDir::Straight { state.steps + 1 } else { min_steps };
+        let delta = if d == TurnDir::Straight { 1 } else { min_steps };
+        State {
+            pos: advance(state.pos, delta, heading),
+            heading,
+            steps,
         }
     };
 
