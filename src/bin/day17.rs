@@ -33,6 +33,7 @@ struct State {
 }
 
 impl Heading {
+    #[inline]
     fn turn(self, dir: TurnDir) -> Self {
         match dir {
             TurnDir::Left => match self {
@@ -52,6 +53,7 @@ impl Heading {
     }
 }
 
+#[inline]
 fn advance((x, y): (usize, usize), delta: usize, dir: Heading) -> (usize, usize) {
     match dir {
         Heading::Right => (x.wrapping_add(delta), y),
