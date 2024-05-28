@@ -27,9 +27,9 @@ enum TurnDir {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct State {
+    steps: usize,
     pos: (usize, usize),
     heading: Heading,
-    steps: usize,
 }
 
 impl Heading {
