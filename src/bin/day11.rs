@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use aoc2023::read_grid;
+use rayon::prelude::*;
 use simple_grid::Grid;
 
 fn main() {
@@ -14,17 +15,21 @@ fn solve(grid: &Grid<u8>, factor: usize) -> usize {
     let frows = free_rows(grid);
     let fcols = free_columns(grid);
 
-    let mut sum = 0;
-    for a @ (ax, ay) in galaxies(grid) {
-        for b @ (bx, by) in galaxies(grid) {
-            if a < b {
+    galaxies(grid)
+        .par_bridge()
+        // `flat_map_iter` instead of `flat_map` makes sure then
+        // only the outer loop is parallelized, and the inner is sequential,
+        // otherwise the overhead dwarfs any gains from parallelism
+        .flat_map_iter(|a| galaxies(grid).filter_map(move |b| (a < b).then_some((a, b))))
+        .fold(
+            || 0,
+            |sum, ((ax, ay), (bx, by))| {
                 let dy = distance(ay, by, &frows, factor);
                 let dx = distance(ax, bx, &fcols, factor);
-                sum += dx + dy;
-            }
-        }
-    }
-    sum
+                sum + dx + dy
+            },
+        )
+        .sum()
 }
 
 fn galaxies(grid: &Grid<u8>) -> impl Iterator<Item = (usize, usize)> + '_ {
