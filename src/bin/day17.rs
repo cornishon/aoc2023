@@ -4,8 +4,7 @@ use simple_grid::Grid;
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day17").unwrap();
-    let grid = read_grid_with(&input, |&c| c - b'0');
-
+    let grid = read_grid_with(&input, |&c| (c - b'0') as u16);
     println!("Part 1: {}", find_path(&grid, 1, 3));
     println!("Part 2: {}", find_path(&grid, 4, 10));
 }
@@ -63,7 +62,7 @@ fn advance((x, y): (usize, usize), delta: usize, dir: Heading) -> (usize, usize)
     }
 }
 
-fn find_path(m: &Grid<u8>, min_steps: usize, max_steps: usize) -> usize {
+fn find_path(m: &Grid<u16>, min_steps: usize, max_steps: usize) -> u16 {
     let start = State {
         pos: (0, 0),
         heading: Heading::Right,
@@ -74,16 +73,10 @@ fn find_path(m: &Grid<u8>, min_steps: usize, max_steps: usize) -> usize {
 
     let cost = |(xa, ya): (usize, usize), (xb, yb): (usize, usize)| {
         if ya == yb {
-            (xa.min(xb)..=xa.max(xb))
-                .map(|x| m[(x, ya)] as usize)
-                .sum::<usize>()
-                - m[(xa, ya)] as usize
+            (xa.min(xb)..=xa.max(xb)).map(|x| m[(x, ya)]).sum::<u16>() - m[(xa, ya)]
         } else {
             debug_assert_eq!(xa, xb, "non-straight path");
-            (ya.min(yb)..=ya.max(yb))
-                .map(|y| m[(xa, y)] as usize)
-                .sum::<usize>()
-                - m[(xa, ya)] as usize
+            (ya.min(yb)..=ya.max(yb)).map(|y| m[(xa, y)]).sum::<u16>() - m[(xa, ya)]
         }
     };
 
@@ -139,19 +132,19 @@ mod test {
 
     #[test]
     fn sample1_part1() {
-        let m = read_grid_with(SAMPLE1, |&c| c - b'0');
+        let m = read_grid_with(SAMPLE1, |&c| (c - b'0') as u16);
         assert_eq!(find_path(&m, 1, 3), 102)
     }
 
     #[test]
     fn sample1_part2() {
-        let m = read_grid_with(SAMPLE1, |&c| c - b'0');
+        let m = read_grid_with(SAMPLE1, |&c| (c - b'0') as u16);
         assert_eq!(find_path(&m, 4, 10), 94)
     }
 
     #[test]
     fn sample2_part2() {
-        let m = read_grid_with(SAMPLE2, |&c| c - b'0');
+        let m = read_grid_with(SAMPLE2, |&c| (c - b'0') as u16);
         assert_eq!(find_path(&m, 4, 10), 71)
     }
 }
