@@ -1,3 +1,4 @@
+use aoc2023::lcm;
 use fxhash::FxHashMap;
 use winnow::{
     ascii::{alphanumeric1, newline, space0},
@@ -30,18 +31,6 @@ fn solve_part2(m: &Model) -> usize {
         .filter(|k| k.ends_with('Z'))
         .map(|k| m.path_length(k, k))
         .fold(1, lcm)
-}
-
-fn lcm(a: usize, b: usize) -> usize {
-    a / gcd(a, b) * b
-}
-
-fn gcd(a: usize, b: usize) -> usize {
-    if b == 0 {
-        a
-    } else {
-        gcd(b, a % b)
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
