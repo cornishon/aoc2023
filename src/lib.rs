@@ -55,3 +55,16 @@ pub fn read_2d_array_with<T>(s: &str, transform: impl Fn(&u8) -> T) -> Array2<T>
         .collect();
     Array2::from_shape_vec((h, w), data).unwrap()
 }
+
+/// Lowest Common Multiple
+pub fn lcm(a: usize, b: usize) -> usize {
+    a / gcd(a, b) * b
+}
+
+/// Greatest Common Divisor
+pub fn gcd(mut a: usize, mut b: usize) -> usize {
+    while b != 0 {
+        (a, b) = (b, a % b);
+    }
+    a
+}
