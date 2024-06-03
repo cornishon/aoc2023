@@ -20,6 +20,7 @@ fn parse_input(input: &str) -> (GridIndex, Grid<bool>) {
     let grid = read_grid(input);
     let start = grid.position(|&x| x == b'S').unwrap();
     let (w, h) = grid.dimensions();
+    assert_eq!(w, h, "expected a square grid");
     let grid = Grid::new(w, h, grid.into_iter().map(|b| b != b'#').collect());
     (start, grid)
 }
@@ -27,7 +28,6 @@ fn parse_input(input: &str) -> (GridIndex, Grid<bool>) {
 fn distances(grid: &Grid<bool>, start: GridIndex, n: i16) -> FxHashMap<Coord, usize> {
     let w = grid.width() as u16;
     let h = grid.height() as u16;
-    assert_eq!(w, h, "expected a square grid");
     let mut queue = VecDeque::from([(start.into(), 0)]);
     let mut dict = FxHashMap::default();
     while let Some((c @ Coord { t_row, t_col, x, y }, d)) = queue.pop_front() {
@@ -110,18 +110,21 @@ fn solve(
     n_rows: u16,
     limit: usize,
 ) -> usize {
-    *cache.entry((steps, corner)).or_insert_with(|| {
-        let n = n_rows as usize;
-        let amount = limit.saturating_sub(steps) / n;
-        let mut ret_val = 0;
-        for x in 1..amount + 1 {
-            let d = steps + n * x;
-            if d <= limit && (d & 1 == limit & 1) {
-                ret_val += (corner as usize * x) + 1;
-            }
-        }
-        ret_val
-    })
+    if let Some(x) = cache.get(&(steps, corner)) {
+        return *x;
+    }
+    let n = n_rows as usize;
+    let amount = limit.saturating_sub(steps) / n;
+    let mut ret_val = 0;
+    let mut x = 0;
+    while x <= amount {
+        x += 1;
+        let d = steps + n * x;
+        let v = d <= limit && (d & 1 == limit & 1);
+        ret_val += v as usize * (corner as usize * x + 1);
+    }
+    cache.insert((steps, corner), ret_val);
+    ret_val
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
