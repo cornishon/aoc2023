@@ -1,46 +1,57 @@
 use std::{cmp::Reverse, ops::Sub};
 
 use fxhash::{FxHashMap, FxHashSet};
+use rayon::prelude::*;
 use winnow::{ascii::dec_uint, error::StrContext, PResult, Parser};
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day22").unwrap();
-    let bricks = apply_gravity(parse_input(&input));
-    println!("Part 1: {}", solve_part1(&bricks));
-    println!("Part 2: {}", solve_part2(&bricks));
+    let preprocessed = preprocess(parse_input(&input));
+    println!("Part 1: {}", solve_part1(&preprocessed));
+    println!("Part 2: {}", solve_part2(preprocessed));
 }
 
-fn solve_part1(bricks: &[Brick]) -> usize {
-    let non_removable = bricks
+struct Preprocessed {
+    bricks: Vec<Brick>,
+    supports: Vec<Vec<usize>>,
+    non_removable: FxHashSet<usize>,
+}
+
+fn preprocess(bricks: Vec<Brick>) -> Preprocessed {
+    let bricks = apply_gravity(bricks);
+    let mut supports = Vec::new();
+    bricks
+        .par_iter()
+        .map(|b| b.supporting_bricks(&bricks))
+        .collect_into_vec(&mut supports);
+    let non_removable = supports
         .iter()
-        .map(|b| b.supporting_bricks(bricks))
         .filter_map(|bs| if let &[b] = bs.as_slice() { Some(b) } else { None })
         .collect::<FxHashSet<_>>();
-    bricks.len() - non_removable.len()
+    Preprocessed {
+        bricks,
+        supports,
+        non_removable,
+    }
 }
 
-fn solve_part2(bricks: &[Brick]) -> usize {
-    let supported_by = bricks
-        .iter()
-        .map(|b| b.supporting_bricks(bricks))
-        .collect::<Vec<_>>();
+fn solve_part1(p: &Preprocessed) -> usize {
+    p.bricks.len() - p.non_removable.len()
+}
 
-    let mut supporting = vec![FxHashSet::default(); bricks.len()];
-    for (i, ss) in supported_by.iter().enumerate() {
+fn solve_part2(p: Preprocessed) -> usize {
+    let mut supporting = vec![FxHashSet::default(); p.bricks.len()];
+    for (i, ss) in p.supports.iter().enumerate() {
         for s in ss {
             supporting[*s].insert(i);
         }
     }
-
-    supported_by
-        .iter()
-        .filter_map(|bs| if let &[b] = bs.as_slice() { Some(b) } else { None })
-        .collect::<FxHashSet<_>>()
-        .into_iter()
+    p.non_removable
+        .into_par_iter()
         .map(|i| {
             let mut fallen = FxHashSet::default();
             fallen.insert(i);
-            chain_reaction(i, &supporting, &supported_by, &mut fallen);
+            chain_reaction(i, &supporting, &p.supports, &mut fallen);
             fallen.len() - 1
         })
         .sum()
@@ -56,8 +67,6 @@ fn chain_reaction(
         if supported_by[*s].iter().all(|s| fallen.contains(s)) {
             fallen.insert(*s);
         }
-    }
-    for s in &supporting[idx] {
         chain_reaction(*s, supporting, supported_by, fallen)
     }
 }
@@ -151,6 +160,13 @@ impl Vec3 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Axis {
+    X(u16),
+    Y(u16),
+    Z(u16),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Brick {
     origin: Vec3,
     axis: Axis,
@@ -209,27 +225,18 @@ impl Brick {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Axis {
-    X(u16),
-    Y(u16),
-    Z(u16),
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn can_solve_part1() {
-        let bricks = apply_gravity(parse_input(SAMPLE1));
-        assert_eq!(solve_part1(&bricks), 5);
+        assert_eq!(solve_part1(&preprocess(parse_input(SAMPLE1))), 5);
     }
 
     #[test]
     fn can_solve_part2() {
-        let bricks = apply_gravity(parse_input(SAMPLE1));
-        assert_eq!(solve_part2(&bricks), 7);
+        assert_eq!(solve_part2(preprocess(parse_input(SAMPLE1))), 7);
     }
 
     const SAMPLE1: &str =
