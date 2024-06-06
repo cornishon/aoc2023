@@ -63,6 +63,9 @@ fn chain_reaction(
     supported_by: &[Vec<usize>],
     fallen: &mut FxHashSet<usize>,
 ) {
+    if !fallen.contains(&idx) {
+        return;
+    }
     for s in &supporting[idx] {
         if supported_by[*s].iter().all(|s| fallen.contains(s)) {
             fallen.insert(*s);
