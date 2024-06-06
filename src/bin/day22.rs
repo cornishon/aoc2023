@@ -49,10 +49,11 @@ fn solve_part2(p: Preprocessed) -> usize {
     p.non_removable
         .into_par_iter()
         .map(|i| {
-            let mut fallen = FxHashSet::default();
-            fallen.insert(i);
+            let mut fallen = vec![false; p.bricks.len()];
+            fallen[i] = true;
             chain_reaction(i, &supporting, &p.supports, &mut fallen);
-            fallen.len() - 1
+            fallen[i] = false;
+            fallen.into_iter().map(|b| b as usize).sum::<usize>()
         })
         .sum()
 }
@@ -61,16 +62,16 @@ fn chain_reaction(
     idx: usize,
     supporting: &[FxHashSet<usize>],
     supported_by: &[Vec<usize>],
-    fallen: &mut FxHashSet<usize>,
+    fallen: &mut [bool],
 ) {
-    if !fallen.contains(&idx) {
+    if !fallen[idx] {
         return;
     }
-    for s in &supporting[idx] {
-        if supported_by[*s].iter().all(|s| fallen.contains(s)) {
-            fallen.insert(*s);
+    for &s in &supporting[idx] {
+        if supported_by[s].iter().all(|&s| fallen[s]) {
+            fallen[s] = true;
         }
-        chain_reaction(*s, supporting, supported_by, fallen)
+        chain_reaction(s, supporting, supported_by, fallen)
     }
 }
 
