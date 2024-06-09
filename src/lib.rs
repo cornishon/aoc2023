@@ -1,4 +1,5 @@
 use ndarray::prelude::*;
+use pathfinding::matrix::Matrix;
 use simple_grid::Grid;
 
 /// Read a rectangular matrix of data from a string, where each byte encodes a single value
@@ -27,6 +28,30 @@ pub fn read_grid_with<T>(s: &str, transform: impl Fn(&u8) -> T) -> Grid<T> {
         .map(transform)
         .collect();
     Grid::new(w, h, data)
+}
+
+/// Read a rectangular matrix of data from a string, where each byte encodes a single value
+/// with a user supplied translation function, and rows are separated by newlines.
+/// Extra whitespace is allowed both around the grid and between the rows.
+/// # Panics
+/// * if `s` doesn't contain at least one row
+/// * if rows have different lengths
+pub fn read_matrix_with<T>(s: &str, transform: impl FnMut(u8) -> T + Clone) -> Matrix<T> {
+    Matrix::from_rows(
+        s.trim()
+            .lines()
+            .map(|s| s.trim().bytes().map(transform.clone())),
+    )
+    .expect("data representing a rectangular grid")
+}
+
+/// Read a rectangular matrix of data from a string, where each byte encodes a single value
+/// and rows are separated by newlines. Extra whitespace is allowed both around the grid and between the rows.
+/// # Panics
+/// * if `s` doesn't contain at least one row
+/// * if rows have different lengths
+pub fn read_matrix(s: &str) -> Matrix<u8> {
+    read_matrix_with(s, |b| b)
 }
 
 /// Read a rectangular matrix of data from a string, where each byte encodes a single value
