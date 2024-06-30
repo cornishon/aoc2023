@@ -1,83 +1,73 @@
-use std::{
-    collections::HashMap,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::collections::HashMap;
 
+use pathfinding::prelude::*;
 use petgraph::{algo, prelude::*};
-use rand::prelude::*;
-use rayon::prelude::*;
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day25").unwrap();
-    let g = parse_graph(&input);
-    let answer = solve(g);
+    let answer = solve(&input);
     println!("Answer: {answer}");
 }
 
-fn solve(mut g: Graph<(), (&str, &str), Undirected>) -> usize {
-    let counter = AtomicUsize::new(0);
-    let cut = rayon::iter::repeat(g.clone())
-        .map(find_cut)
-        .find_any(|cut| {
-            counter.fetch_add(1, Ordering::Relaxed);
-            cut.len() == 3
-        })
-        .unwrap();
-    eprintln!("retried {} times", counter.into_inner());
-
-    for w in cut.iter() {
-        let edge = g
-            .edge_references()
-            .find_map(|e| (e.weight() == w).then_some(e.id()))
-            .unwrap();
+fn solve(input: &str) -> usize {
+    let g = parse_directed(input);
+    let min_cut = find_cut(&g, 3).expect("a cut of size 3 exists");
+    let mut g = g.into_edge_type::<Undirected>();
+    for edge in min_cut {
         g.remove_edge(edge);
     }
-    algo::condensation(g, false)
-        .node_weights()
-        .map(|w| w.len())
-        .product::<usize>()
+    // Find the connected components and multiply their sizes
+    algo::tarjan_scc(&g).into_iter().map(|v| v.len()).product()
 }
 
-type WireGraph<'a> = Graph<(), (&'a str, &'a str), Undirected>;
+fn find_cut<N, E>(g: &DiGraph<N, E>, size: usize) -> Option<Vec<EdgeIndex>> {
+    let vertices = g.node_indices().collect::<Vec<_>>();
+    let sources = g
+        .node_indices()
+        .filter(|&i| g.edges_directed(i, Incoming).count() == 0)
+        .collect::<Vec<_>>();
+    let sinks = g
+        .node_indices()
+        .filter(|&i| g.edges_directed(i, Outgoing).count() == 0)
+        .collect::<Vec<_>>();
+    // allow flow in both directions
+    let caps = g
+        .edge_references()
+        .flat_map(|e| {
+            let s = e.source();
+            let t = e.target();
+            [((s, t), 1), ((t, s), 1)]
+        })
+        .collect::<Vec<_>>();
 
-fn parse_graph(s: &str) -> WireGraph {
-    let mut g = WireGraph::default();
-    let mut nodes = HashMap::new();
-    for line in s.trim().lines() {
-        let (node, children) = line.split_once(':').expect("semicolon");
-        let n = *nodes.entry(node).or_insert_with(|| g.add_node(()));
-        for child in children.split_whitespace() {
-            let c = *nodes.entry(child).or_insert_with(|| g.add_node(()));
-            g.add_edge(n, c, (node, child));
-        }
-    }
-    g
-}
-
-fn find_cut(mut g: WireGraph) -> Vec<(&str, &str)> {
-    let mut rng = rand::thread_rng();
-    while g.node_count() > 2 {
-        let e = rng.gen_range(0..g.edge_count());
-        contract(&mut g, EdgeIndex::new(e));
-    }
-    let cut = g.edge_weights().copied().collect();
-    eprintln!("{cut:?}");
-    cut
-}
-
-fn contract(g: &mut WireGraph, edge: EdgeIndex) {
-    let new_node = g.add_node(());
-    let (u, v) = g.edge_endpoints(edge).unwrap();
-    for n in [u, v] {
-        let mut nbors = g.neighbors(n).detach();
-        while let Some((e, w)) = nbors.next(g) {
-            if w != v && w != u {
-                g.add_edge(new_node, w, g[e]);
+    for source in &sources {
+        for sink in &sinks {
+            let (_flows, _max_cap, min_cut) =
+                edmonds_karp_sparse(&vertices, source, sink, caps.iter().copied());
+            if min_cut.len() == size {
+                let edges = min_cut
+                    .into_iter()
+                    .map(|((v, w), _)| g.find_edge_undirected(v, w).unwrap().0)
+                    .collect::<Vec<_>>();
+                return Some(edges);
             }
         }
     }
-    g.remove_node(u);
-    g.remove_node(v);
+    None
+}
+
+fn parse_directed(s: &str) -> DiGraph<&str, ()> {
+    let mut g = DiGraph::new();
+    let mut nodes = HashMap::new();
+    for line in s.trim().lines() {
+        let (node, children) = line.split_once(':').expect("semicolon");
+        let n = *nodes.entry(node).or_insert_with(|| g.add_node(node));
+        for child in children.split_whitespace() {
+            let c = *nodes.entry(child).or_insert_with(|| g.add_node(child));
+            g.add_edge(n, c, ());
+        }
+    }
+    g
 }
 
 #[cfg(test)]
@@ -86,8 +76,7 @@ mod tests {
 
     #[test]
     fn can_solve() {
-        let answer = solve(parse_graph(SAMPLE1));
-
+        let answer = solve(SAMPLE1);
         assert_eq!(answer, 54);
     }
 
