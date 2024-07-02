@@ -15,8 +15,8 @@ use winnow::{
 fn main() {
     let input = std::fs::read_to_string("inputs/day20").unwrap();
     let (graph, id_map) = parse_input(&input).map_err(|e| println!("{e}")).unwrap();
-    println!("{}", solve_part1(graph.clone(), &id_map));
-    println!("{}", solve_part2(graph, &id_map));
+    println!("Part 1: {}", solve_part1(graph.clone(), &id_map));
+    println!("Part 2: {}", solve_part2(graph, &id_map));
 }
 
 /// A Grpah representing the connections between Modules.
